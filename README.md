@@ -1,4 +1,4 @@
-# MovieSense AI - Movie Review Sentiment Analysis
+# CritiQ# MovieSense AI - Movie Review Sentiment Analysis
 
 A full-stack web application for analyzing movie review sentiments using AI. The application consists of three main components:
 - React.js frontend with TailwindCSS and ShadCN/UI
