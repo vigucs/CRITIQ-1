@@ -1,0 +1,1 @@
+// This file is deprecated. All review routes are handled by the controller in routes/index.ts. 
