@@ -6,6 +6,8 @@ pipeline {
         DOCKER_REGISTRY = credentials('docker-registry')
         DOCKER_CREDENTIALS = credentials('docker-credentials')
         JWT_SECRET = credentials('jwt-secret')
+        PYTHON_PATH = 'C:\\Python38\\python.exe'
+        PIP_PATH = 'C:\\Python38\\Scripts\\pip.exe'
     }
 
     stages {
@@ -18,10 +20,9 @@ pipeline {
         stage('Load Environment') {
             steps {
                 script {
-                    // Load environment variables from jenkins.env
                     def props = readProperties file: 'jenkins.env'
-                    env.DOCKER_ENV = props.DOCKER_ENV
-                    env.NODE_ENV = props.NODE_ENV
+                    env.DOCKER_ENV = props.DOCKER_ENV ?: 'true'
+                    env.NODE_ENV = props.NODE_ENV ?: 'production'
                 }
             }
         }
@@ -55,10 +56,13 @@ pipeline {
                     }
                 }
                 stage('ML API Tests') {
+                    when {
+                        expression { return fileExists('C:\\Python38\\python.exe') }
+                    }
                     steps {
                         dir('ml-api') {
-                            bat 'pip install -r requirements.txt'
-                            bat 'python -m pytest || exit /b 0'
+                            bat '%PIP_PATH% install -r requirements.txt || exit /b 0'
+                            bat '%PYTHON_PATH% -m pytest || exit /b 0'
                         }
                     }
                 }
