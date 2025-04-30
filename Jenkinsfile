@@ -41,17 +41,19 @@ pipeline {
             parallel {
                 stage('Frontend Tests') {
                     steps {
-                        dir('client') {
-                            bat 'npm install'
-                            bat 'npm run test:ci || exit /b 0'
+                        script {
+                            bat """
+                                docker-compose run --rm client npm run test:ci || exit /b 0
+                            """
                         }
                     }
                 }
                 stage('Backend Tests') {
                     steps {
-                        dir('server') {
-                            bat 'npm install'
-                            bat 'npm run test:ci || exit /b 0'
+                        script {
+                            bat """
+                                docker-compose run --rm server npm run test:ci || exit /b 0
+                            """
                         }
                     }
                 }
@@ -60,9 +62,10 @@ pipeline {
                         expression { return fileExists('C:\\Python38\\python.exe') }
                     }
                     steps {
-                        dir('ml-api') {
-                            bat '%PIP_PATH% install -r requirements.txt || exit /b 0'
-                            bat '%PYTHON_PATH% -m pytest || exit /b 0'
+                        script {
+                            bat """
+                                docker-compose run --rm ml-api python -m pytest || exit /b 0
+                            """
                         }
                     }
                 }
@@ -78,31 +81,14 @@ pipeline {
             }
         }
 
-        stage('Push to Registry') {
-            when {
-                branch 'main'
-            }
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
-                        bat 'docker-compose push || exit /b 0'
-                    }
-                }
-            }
-        }
-
         stage('Deploy') {
-            when {
-                branch 'main'
-            }
             steps {
                 script {
                     // Stop existing containers first
                     bat 'docker-compose down || exit /b 0'
                     
                     // Start new containers
-                    bat 'docker-compose up -d --force-recreate --no-build'
+                    bat 'docker-compose up -d'
                 }
             }
         }
