@@ -73,7 +73,7 @@ pipeline {
             steps {
                 script {
                     bat 'npm audit || exit /b 0'
-                    bat 'docker scan . || exit /b 0'
+                    bat 'docker scout cves . || exit /b 0'
                 }
             }
         }
@@ -110,8 +110,7 @@ pipeline {
         stage('Health Check') {
             steps {
                 script {
-                    // Wait for services to start
-                    bat 'timeout /t 30'
+                    bat 'powershell -Command "Start-Sleep -Seconds 30"'
                     
                     // Check each service
                     parallel (

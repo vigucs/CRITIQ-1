@@ -2,8 +2,8 @@ FROM node:16-alpine
 
 WORKDIR /app
 
-# Install TypeScript globally
-RUN npm install -g typescript
+# Install TypeScript and Jest globally
+RUN npm install -g typescript jest
 
 COPY package*.json ./
 RUN npm install
