@@ -3,6 +3,9 @@ pipeline {
 
     environment {
         DOCKER_COMPOSE_VERSION = '1.29.2'
+        DOCKER_REGISTRY = credentials('docker-registry')
+        DOCKER_CREDENTIALS = credentials('docker-credentials')
+        JWT_SECRET = credentials('jwt-secret')
     }
 
     stages {
@@ -12,9 +15,25 @@ pipeline {
             }
         }
 
+        stage('Load Environment') {
+            steps {
+                script {
+                    // Load environment variables from jenkins.env
+                    def props = readProperties file: 'jenkins.env'
+                    env.DOCKER_ENV = props.DOCKER_ENV
+                    env.NODE_ENV = props.NODE_ENV
+                    // Other environment variables are loaded from Jenkins credentials
+                }
+            }
+        }
+
         stage('Build Docker Images') {
             steps {
-                sh 'docker-compose build'
+                script {
+                    bat """
+                        docker-compose -f docker-compose.yml build --build-arg NODE_ENV=%NODE_ENV% --build-arg DOCKER_ENV=%DOCKER_ENV%
+                    """
+                }
             }
         }
 
@@ -23,41 +42,89 @@ pipeline {
                 stage('Frontend Tests') {
                     steps {
                         dir('client') {
-                            sh 'docker-compose run --rm client npm test'
+                            bat 'npm install'
+                            bat 'npm run test:ci'
                         }
                     }
                 }
                 stage('Backend Tests') {
                     steps {
                         dir('server') {
-                            sh 'docker-compose run --rm server npm test'
+                            bat 'npm install'
+                            bat 'npm run test:ci'
                         }
                     }
                 }
                 stage('ML API Tests') {
                     steps {
                         dir('ml-api') {
-                            sh 'docker-compose run --rm ml-api python -m pytest'
+                            bat 'pip install -r requirements.txt'
+                            bat 'python -m pytest'
                         }
                     }
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Security Scan') {
             steps {
-                sh 'docker-compose down || true'
-                sh 'docker-compose up -d'
+                script {
+                    bat 'npm audit || exit /b 0'
+                    bat 'docker scan . || exit /b 0'
+                }
+            }
+        }
+
+        stage('Push to Registry') {
+            when {
+                branch 'main'  // Only push images on main branch
+            }
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
+                        bat 'docker-compose push'
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                branch 'main'  // Only deploy on main branch
+            }
+            steps {
+                script {
+                    // Backup database if needed
+                    bat 'docker-compose exec -T mongodb mongodump --archive > backup.gz || exit /b 0'
+                    
+                    // Stop existing containers
+                    bat 'docker-compose down || exit /b 0'
+                    
+                    // Start new containers
+                    bat 'docker-compose up -d --force-recreate --no-build'
+                }
             }
         }
 
         stage('Health Check') {
             steps {
                 script {
-                    sleep 30 // Wait for services to start
-                    sh 'curl -f http://localhost:3000 || exit 1'
-                    sh 'curl -f http://localhost:5000/health || exit 1'
-                    sh 'curl -f http://localhost:6000/health || exit 1'
+                    // Wait for services to start
+                    bat 'timeout /t 30'
+                    
+                    // Check each service
+                    parallel (
+                        "Frontend": {
+                            bat 'curl -f http://localhost:3000 || exit /b 1'
+                        },
+                        "Backend": {
+                            bat 'curl -f http://localhost:5000/api/health || exit /b 1'
+                        },
+                        "ML API": {
+                            bat 'curl -f http://localhost:6000/health || exit /b 1'
+                        }
+                    )
                 }
             }
         }
@@ -65,10 +132,37 @@ pipeline {
 
     post {
         always {
-            sh 'docker-compose logs'
+            // Collect logs
+            bat 'docker-compose logs > docker-logs.txt'
+            archiveArtifacts artifacts: 'docker-logs.txt', fingerprint: true
+            
+            // Clean up old images
+            bat 'docker system prune -f || exit /b 0'
+        }
+        success {
+            // Notify on success
+            emailext (
+                subject: "Pipeline Success: ${currentBuild.fullDisplayName}",
+                body: "The pipeline completed successfully.",
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+            )
         }
         failure {
-            sh 'docker-compose down'
+            script {
+                // Stop containers on failure
+                bat 'docker-compose down'
+                
+                // Restore database if backup exists
+                bat 'docker-compose up -d mongodb'
+                bat 'docker-compose exec -T mongodb mongorestore --archive < backup.gz || exit /b 0'
+                
+                // Notify on failure
+                emailext (
+                    subject: "Pipeline Failed: ${currentBuild.fullDisplayName}",
+                    body: "The pipeline failed. Check the logs for details.",
+                    recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+                )
+            }
         }
     }
 } 
