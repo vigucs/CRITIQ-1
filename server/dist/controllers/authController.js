@@ -91,6 +91,20 @@ exports.register = register;
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password } = req.body;
+        // Development mode - allow login with any credentials when MongoDB is not connected
+        if (process.env.NODE_ENV === 'development' && req.get('X-Dev-Mode') === 'true') {
+            console.log('DEV MODE: Allowing login without database check');
+            const mockToken = jsonwebtoken_1.default.sign({ id: 'dev-user-id' }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+            return res.json({
+                token: mockToken,
+                user: {
+                    id: 'dev-user-id',
+                    name: 'Development User',
+                    email: email || 'dev@example.com',
+                    role: 'admin'
+                },
+            });
+        }
         // Check if user exists
         const user = yield User_1.default.findOne({ email });
         if (!user) {
@@ -109,10 +123,12 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 id: user._id,
                 name: user.name,
                 email: user.email,
+                role: user.role
             },
         });
     }
     catch (error) {
+        console.error('Login error:', error);
         res.status(500).json({ message: error.message });
     }
 });

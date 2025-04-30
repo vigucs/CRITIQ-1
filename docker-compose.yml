@@ -14,6 +14,8 @@ services:
       - REACT_APP_API_URL=http://localhost:5000
     depends_on:
       - server
+    networks:
+      - app-network
 
   server:
     build:
@@ -25,12 +27,14 @@ services:
       - ./server:/app
       - /app/node_modules
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017/moviesense
+      - DOCKER_ENV=true
       - JWT_SECRET=your_jwt_secret
       - ML_API_URL=http://ml-api:6000
     depends_on:
-      - mongodb
-      - ml-api
+      mongodb:
+        condition: service_started
+    networks:
+      - app-network
 
   ml-api:
     build:
@@ -42,6 +46,8 @@ services:
       - ./ml-api:/app
     environment:
       - MODEL_PATH=/app/models/sentiment_model.pkl
+    networks:
+      - app-network
 
   mongodb:
     image: mongo:latest
@@ -49,6 +55,17 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   mongodb_data: 

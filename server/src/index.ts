@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/database';
 import routes from './routes';
-import mongoose from 'mongoose';
 
 dotenv.config();
 
@@ -15,19 +14,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Set up CORS
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*'); // Allow all origins in development
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Dev-Mode');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Add request logging middleware
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`, {
+    body: req.method !== 'GET' ? req.body : undefined,
+    query: req.query,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'authorization': req.headers['authorization'] ? 'present' : 'not present'
+    }
+  });
   next();
 });
 
@@ -43,41 +46,41 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     name: err.name
   });
   
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ 
+      error: 'Validation Error',
+      details: err.message
+    });
+  }
+
+  if (err.name === 'UnauthorizedError') {
+    return res.status(401).json({ 
+      error: 'Authentication Error',
+      details: err.message
+    });
+  }
+  
   res.status(500).json({ 
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    error: 'Server Error',
+    details: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
   });
 });
 
-// Check if we have DEV_MODE environment variable set
-const isDevMode = process.env.DEV_MODE === 'true';
-
-// Connect to MongoDB only if not in dev mode
-if (isDevMode) {
-  console.log('Starting server in DEV MODE - skipping MongoDB connection');
-  app.listen(PORT, () => {
-    console.log(`Server is running in DEV MODE on port ${PORT}`);
-    console.log(`API is available at http://localhost:${PORT}/api`);
-  });
-} else {
-  // Regular MongoDB connection
-  console.log('Attempting to connect to MongoDB at:', process.env.MONGODB_URI);
-  mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/movie-reviews')
-    .then(() => {
-      console.log('Connected to MongoDB');
-      app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-        console.log(`API is available at http://localhost:${PORT}/api`);
-      });
-    })
-    .catch((error) => {
-      console.error('MongoDB connection error:', error);
-      console.log('Starting server without MongoDB connection...');
-      // Start server anyway to allow some functionality to work
-      app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}, but without database connection`);
-        console.log(`API is available at http://localhost:${PORT}/api`);
-        console.log('Note: Some functionality requiring database access will not work!');
-      });
+// Initialize server
+const startServer = async () => {
+  try {
+    // Connect to MongoDB
+    await connectDB();
+    
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+      console.log(`API is available at http://localhost:${PORT}/api`);
     });
-} 
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer(); 

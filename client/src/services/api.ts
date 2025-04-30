@@ -71,9 +71,24 @@ api.interceptors.response.use(
 
 // Auth API
 export const login = async (email: string, password: string) => {
-  const response = await api.post<{ token: string; user: any }>('/auth/login', { email, password });
-  localStorage.setItem('token', response.data.token);
-  return response.data;
+  try {
+    const response = await api.post<{ token: string; user: any }>('/auth/login', { 
+      email: email.trim().toLowerCase(), 
+      password 
+    });
+    
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+    }
+    
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 401) {
+      throw new Error('Invalid email or password');
+    }
+    throw new Error(error.response?.data?.error || 'Login failed');
+  }
 };
 
 export const register = async (name: string, email: string, password: string) => {

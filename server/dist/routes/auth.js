@@ -13,23 +13,36 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const router = express_1.default.Router();
 router.post('/login', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password } = req.body;
-        const user = yield User_1.default.findOne({ email });
+        console.log('Login attempt for email:', email);
+        const user = yield User_1.default.findOne({ email: email.toLowerCase() });
         if (!user) {
+            console.log('User not found for email:', email);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
-        const isValidPassword = yield bcryptjs_1.default.compare(password, user.password);
+        console.log('User found, comparing passwords');
+        const isValidPassword = yield user.comparePassword(password);
         if (!isValidPassword) {
+            console.log('Invalid password for user:', email);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
+        console.log('Password valid, generating token');
         const token = jsonwebtoken_1.default.sign({ userId: user._id }, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '1h' });
-        res.json({ token });
+        console.log('Login successful for user:', email);
+        res.json({
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        });
     }
     catch (error) {
         console.error('Login error:', error);
@@ -38,18 +51,32 @@ router.post('/login', (req, res) => __awaiter(void 0, void 0, void 0, function* 
 }));
 router.post('/register', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { email, password } = req.body;
-        const existingUser = yield User_1.default.findOne({ email });
+        const { name, email, password } = req.body;
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: 'Please provide all required fields' });
+        }
+        const existingUser = yield User_1.default.findOne({ email: email.toLowerCase() });
         if (existingUser) {
             return res.status(400).json({ error: 'Email already registered' });
         }
-        const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
         const user = new User_1.default({
-            email,
-            password: hashedPassword,
+            name,
+            email: email.toLowerCase(),
+            password,
         });
         yield user.save();
-        res.status(201).json({ message: 'User registered successfully' });
+        // Create and send token after registration
+        const token = jsonwebtoken_1.default.sign({ userId: user._id }, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '1h' });
+        res.status(201).json({
+            message: 'User registered successfully',
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        });
     }
     catch (error) {
         console.error('Registration error:', error);

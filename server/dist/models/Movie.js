@@ -59,6 +59,15 @@ const MovieSchema = new mongoose_1.Schema({
         type: String,
         default: '',
     },
+    runtime: {
+        type: Number,
+        default: 0,
+    },
+    tmdbId: {
+        type: Number,
+        unique: true,
+        sparse: true,
+    },
 }, { timestamps: true });
 // Create index for faster searching
 MovieSchema.index({ title: 'text' });

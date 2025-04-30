@@ -2,21 +2,25 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateLogin = exports.validateRegistration = exports.validateReview = void 0;
 const validateReview = (req, res, next) => {
-    const { movieTitle, reviewText, rating } = req.body;
+    const { movieId, movieTitle, reviewText, rating } = req.body;
     const errors = [];
+    if (!movieId || typeof movieId !== 'string' || movieId.trim().length === 0) {
+        errors.push('Movie ID is required');
+    }
     if (!movieTitle || typeof movieTitle !== 'string' || movieTitle.trim().length < 1) {
         errors.push('Movie title is required');
     }
     if (!reviewText || typeof reviewText !== 'string' || reviewText.trim().length < 10) {
         errors.push('Review text must be at least 10 characters long');
     }
-    if (!rating || typeof rating !== 'number' || rating < 1 || rating > 10) {
-        errors.push('Rating must be a number between 1 and 10');
+    if (!rating || typeof rating !== 'number' || rating < 1 || rating > 5) {
+        errors.push('Rating must be a number between 1 and 5');
     }
     if (errors.length > 0) {
         return res.status(400).json({ message: errors.join(', ') });
     }
     // Sanitize input
+    req.body.movieId = movieId.trim();
     req.body.movieTitle = movieTitle.trim();
     req.body.reviewText = reviewText.trim();
     req.body.rating = Math.round(rating);

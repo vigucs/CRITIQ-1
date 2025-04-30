@@ -2,8 +2,12 @@ import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/movie-reviews';
+    // Use mongodb service name in Docker, fallback to localhost for local development
+    const mongoHost = process.env.DOCKER_ENV ? 'mongodb' : '127.0.0.1';
+    const mongoURI = `mongodb://${mongoHost}:27017/movie-reviews`;
+    
     console.log('Attempting to connect to MongoDB at:', mongoURI);
+    console.log('Environment:', process.env.DOCKER_ENV ? 'Docker' : 'Local');
     
     await mongoose.connect(mongoURI);
     

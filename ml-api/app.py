@@ -8,6 +8,7 @@ import hashlib
 from fastapi.responses import JSONResponse
 import logging
 import numpy as np
+from datetime import datetime
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -216,7 +217,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "model_loaded": sentiment_analyzer is not None}
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "model": "loaded" if sentiment_analyzer is not None else "not_loaded"
+    }
 
 if __name__ == "__main__":
     import uvicorn

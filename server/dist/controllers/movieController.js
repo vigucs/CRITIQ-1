@@ -56,85 +56,35 @@ exports.getAllMovies = getAllMovies;
 const getMovie = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
-        if (!mongoose_1.default.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: 'Invalid movie ID' });
+        const isTmdbRoute = req.originalUrl.includes('/tmdb/');
+        let movie;
+        if (isTmdbRoute) {
+            // Only proceed if id is a valid number
+            const tmdbIdNum = Number(id);
+            if (isNaN(tmdbIdNum)) {
+                return res.status(404).json({ message: 'Movie not found' });
+            }
+            movie = yield Movie_1.default.findOne({ tmdbId: tmdbIdNum });
         }
-        const movieId = new mongoose_1.default.Types.ObjectId(id);
-        const pipeline = [
-            {
-                $match: { _id: movieId },
-            },
-            {
-                $lookup: {
-                    from: 'reviews',
-                    localField: '_id',
-                    foreignField: 'movieId',
-                    as: 'reviews',
-                },
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'reviews.userId',
-                    foreignField: '_id',
-                    as: 'users',
-                },
-            },
-            {
-                $addFields: {
-                    reviewCount: { $size: '$reviews' },
-                    avgRating: { $avg: '$reviews.rating' },
-                    // Add user names to each review
-                    reviews: {
-                        $map: {
-                            input: '$reviews',
-                            as: 'review',
-                            in: {
-                                _id: '$$review._id',
-                                reviewText: '$$review.reviewText',
-                                rating: '$$review.rating',
-                                sentiment: '$$review.sentiment',
-                                userId: '$$review.userId',
-                                createdAt: '$$review.createdAt',
-                                updatedAt: '$$review.updatedAt',
-                                userName: {
-                                    $let: {
-                                        vars: {
-                                            user: {
-                                                $arrayElemAt: [
-                                                    {
-                                                        $filter: {
-                                                            input: '$users',
-                                                            cond: { $eq: ['$$this._id', '$$review.userId'] },
-                                                        },
-                                                    },
-                                                    0,
-                                                ],
-                                            },
-                                        },
-                                        in: '$$user.name',
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            {
-                $project: {
-                    users: 0, // Don't include full user details
-                },
-            },
-        ];
-        const [movie] = yield Movie_1.default.aggregate(pipeline);
+        else {
+            if (mongoose_1.default.Types.ObjectId.isValid(id)) {
+                movie = yield Movie_1.default.findById(id);
+            }
+            if (!movie) {
+                movie = yield Movie_1.default.findOne({ tmdbId: Number(id) });
+                if (!movie) {
+                    movie = yield Movie_1.default.findOne({ tmdbId: id });
+                }
+            }
+        }
         if (!movie) {
             return res.status(404).json({ message: 'Movie not found' });
         }
         res.json(movie);
     }
     catch (error) {
-        console.error('Error getting movie:', error);
-        res.status(500).json({ message: error.message });
+        console.error('Error fetching movie:', error);
+        res.status(500).json({ message: 'Error fetching movie' });
     }
 });
 exports.getMovie = getMovie;

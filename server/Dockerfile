@@ -7,6 +7,9 @@ RUN npm install
 
 COPY . .
 
+# Build TypeScript
+RUN npm run build
+
 EXPOSE 5000
 
 CMD ["npm", "start"] 

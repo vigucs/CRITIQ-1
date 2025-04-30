@@ -30,11 +30,18 @@ const Login: React.FC = () => {
     setLoading(true);
     setError(null);
 
+    if (!formData.email.trim() || !formData.password) {
+      setError('Please enter both email and password');
+      setLoading(false);
+      return;
+    }
+
     try {
-      await authLogin(formData.email, formData.password);
+      await authLogin(formData.email.trim(), formData.password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to login');
+      console.error('Login error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to login. Please check your credentials.');
     } finally {
       setLoading(false);
     }

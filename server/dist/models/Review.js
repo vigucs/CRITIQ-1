@@ -41,8 +41,7 @@ const ReviewSchema = new mongoose_1.Schema({
         maxlength: [100, 'Movie title cannot be more than 100 characters'],
     },
     movieId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'Movie',
+        type: String,
         required: [true, 'Please provide a movie ID'],
     },
     reviewText: {
@@ -60,6 +59,12 @@ const ReviewSchema = new mongoose_1.Schema({
         type: String,
         required: [true, 'Please provide a sentiment'],
         enum: ['positive', 'negative', 'neutral'],
+    },
+    sentimentScore: {
+        type: Number,
+        required: false,
+        min: 0,
+        max: 100,
     },
     userId: {
         type: mongoose_1.Schema.Types.ObjectId,

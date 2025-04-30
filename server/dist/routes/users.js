@@ -7,10 +7,12 @@ const express_1 = __importDefault(require("express"));
 const auth_1 = require("../middleware/auth");
 const userController_1 = require("../controllers/userController");
 const router = express_1.default.Router();
+// Helper function to convert middleware to the correct type
+const typedProtect = auth_1.protect;
 // Current user route
-router.get('/me', auth_1.protect, userController_1.getCurrentUser);
+router.get('/me', typedProtect, userController_1.getCurrentUser);
 // Admin routes
-router.get('/', auth_1.protect, userController_1.getUsers);
-router.patch('/:id/role', auth_1.protect, userController_1.updateUserRole);
-router.delete('/:id', auth_1.protect, userController_1.deleteUser);
+router.get('/', typedProtect, userController_1.getUsers);
+router.patch('/:id/role', typedProtect, userController_1.updateUserRole);
+router.delete('/:id', typedProtect, userController_1.deleteUser);
 exports.default = router;

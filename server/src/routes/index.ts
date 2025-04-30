@@ -79,15 +79,15 @@ router.get('/reviews/:id', typedProtect, getReview as any);
 router.put('/reviews/:id', typedProtect, updateReview as any);
 router.delete('/reviews/:id', typedProtect, deleteReview as any);
 
-// Add a health check route
+// Health check endpoint
 router.get('/health', (req, res) => {
-  const isDbConnected = mongoose.connection.readyState === 1;
-  
   res.json({
-    status: 'ok',
+    status: 'healthy',
     timestamp: new Date().toISOString(),
-    mongodb: isDbConnected ? 'connected' : 'disconnected',
-    env: process.env.NODE_ENV || 'development'
+    services: {
+      server: 'up',
+      database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    }
   });
 });
 
