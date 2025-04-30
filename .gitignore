@@ -1,1 +1,13 @@
-.venv/
+# .gitignore
+node_modules/
+.cache/
+venv/
+*.log
+*.pyc
+__pycache__/
+.DS_Store
+node_modules/
+venv/
+.cache/
+*.log
+__pycache__/
