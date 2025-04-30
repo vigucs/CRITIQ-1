@@ -11,3 +11,8 @@ venv/
 .cache/
 *.log
 __pycache__/
+node_modules/
+venv/
+.cache/
+*.log
+__pycache__/
