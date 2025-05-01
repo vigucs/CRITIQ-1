@@ -31,15 +31,21 @@ interface Movie {
   reviews: Review[];
 }
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'http://server:5000' 
+    : 'http://localhost:5000');
+
 const ML_API_URL = process.env.REACT_APP_ML_API_URL || 'http://localhost:5500';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
-  },
+    'X-Requested-With': 'XMLHttpRequest'
+  }
 });
 
 // Add token to requests if available
