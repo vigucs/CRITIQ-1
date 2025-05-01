@@ -78,11 +78,11 @@ export const login = async (email: string, password: string) => {
     });
     
     if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
+  localStorage.setItem('token', response.data.token);
       api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
     }
     
-    return response.data;
+  return response.data;
   } catch (error: any) {
     if (error.response?.status === 401) {
       throw new Error('Invalid email or password');

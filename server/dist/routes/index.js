@@ -53,14 +53,15 @@ router.get('/reviews/new', (req, res) => {
 router.get('/reviews/:id', typedProtect, reviewController_1.getReview);
 router.put('/reviews/:id', typedProtect, reviewController_1.updateReview);
 router.delete('/reviews/:id', typedProtect, reviewController_1.deleteReview);
-// Add a health check route
+// Health check endpoint
 router.get('/health', (req, res) => {
-    const isDbConnected = mongoose_1.default.connection.readyState === 1;
     res.json({
-        status: 'ok',
+        status: 'healthy',
         timestamp: new Date().toISOString(),
-        mongodb: isDbConnected ? 'connected' : 'disconnected',
-        env: process.env.NODE_ENV || 'development'
+        services: {
+            server: 'up',
+            database: mongoose_1.default.connection.readyState === 1 ? 'connected' : 'disconnected'
+        }
     });
 });
 // Development mode mock handlers

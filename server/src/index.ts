@@ -7,7 +7,7 @@ import routes from './routes';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT || '5000', 10);
 
 // Middleware setup
 app.use(express.json());
@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Set up CORS
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: process.env.DOCKER_ENV ? 'http://client:3000' : 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -32,6 +32,11 @@ app.use((req, res, next) => {
     }
   });
   next();
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Routes
@@ -69,14 +74,45 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Initialize server
 const startServer = async () => {
   try {
+    console.log('Starting server with environment:', {
+      NODE_ENV: process.env.NODE_ENV,
+      DOCKER_ENV: process.env.DOCKER_ENV,
+      PORT: PORT,
+      MONGODB_URI: process.env.MONGODB_URI
+    });
+
     // Connect to MongoDB
     await connectDB();
     
     // Start server
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server is running on port ${PORT}`);
-      console.log(`API is available at http://localhost:${PORT}/api`);
+      console.log(`API is available at http://0.0.0.0:${PORT}/api`);
     });
+
+    // Handle server errors
+    server.on('error', (error: any) => {
+      console.error('Server error:', error);
+      process.exit(1);
+    });
+
+    // Handle process termination
+    process.on('SIGTERM', () => {
+      console.log('Received SIGTERM signal. Shutting down gracefully...');
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGINT', () => {
+      console.log('Received SIGINT signal. Shutting down gracefully...');
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+    });
+
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
