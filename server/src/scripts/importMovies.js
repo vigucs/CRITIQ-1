@@ -12,7 +12,7 @@ const mongoose = require('mongoose');
 require('dotenv').config({ path: '../.env' });
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/movie-reviews';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongodb:27017/movie-reviews';
 
 // TMDB API configuration
 const TMDB_API_KEY = process.env.TMDB_API_KEY || 'YOUR_TMDB_API_KEY'; // Replace with your API key if not using env var

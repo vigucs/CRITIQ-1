@@ -68,26 +68,6 @@ const Register: React.FC = () => {
     }
   };
 
-  const handleDevRegistration = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      console.log('Using developer registration');
-      await register('Developer User', 'dev@example.com', 'password123');
-      console.log('Developer registration successful');
-      
-      // Use setTimeout to ensure state updates are complete
-      setTimeout(() => {
-        navigate('/dashboard', { replace: true });
-      }, 100);
-    } catch (err) {
-      console.error('Developer registration error:', err);
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       setLoading(true);
@@ -201,42 +181,24 @@ const Register: React.FC = () => {
           </div>
         </form>
 
-        {!googleAuthFailed && (
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-50 text-gray-500">Or continue with</span>
-              </div>
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
             </div>
-            <div className="mt-6 flex justify-center">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                useOneTap
-              />
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-50 text-gray-500">Already have an account?</span>
             </div>
           </div>
-        )}
 
-        <div className="mt-4 text-center">
-          <p className="text-gray-600 text-sm font-bold">Quick Access</p>
-          <p className="text-gray-600 text-sm mb-2">Use the developer account for testing:</p>
-          <button
-            onClick={handleDevRegistration}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-            disabled={loading}
-          >
-            {loading ? 'Registering...' : 'Use Developer Account'}
-          </button>
-        </div>
-
-        <div className="text-center">
-          <Link to="/login" className="text-indigo-600 hover:text-indigo-500">
-            Already have an account? Sign in
-          </Link>
+          <div className="mt-6">
+            <Link
+              to="/login"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              Sign in
+            </Link>
+          </div>
         </div>
       </motion.div>
     </div>

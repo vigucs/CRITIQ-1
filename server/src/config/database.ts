@@ -8,7 +8,7 @@ const connectDB = async () => {
   const tryConnect = async () => {
     try {
       // Always use the container name in Docker environment
-      const mongoURI = process.env.MONGODB_URI || 'mongodb://mongodb:27017/movie-reviews';
+      const mongoURI = process.env.MONGODB_URI || 'mongodb://mongodb:27017/capstone-project';
       
       console.log('Attempting to connect to MongoDB at:', mongoURI);
       console.log('Environment:', process.env.DOCKER_ENV ? 'Docker' : 'Local');

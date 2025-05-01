@@ -1,109 +1,82 @@
 const mongoose = require('mongoose');
-const path = require('path');
-const fs = require('fs');
 require('dotenv').config({ path: '../.env' });
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/movie-reviews';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongodb:27017/movie-reviews';
 
-// Define Movie schema
-const MovieSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-    maxlength: 100,
+// Sample movies data
+const sampleMovies = [
+  {
+    title: "The Shawshank Redemption",
+    year: "1994",
+    genre: "Drama",
+    imageUrl: "https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg",
+    description: "Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.",
+    tmdbId: 278,
+    runtime: 142,
+    reviewCount: 0,
+    avgRating: 0
   },
-  year: {
-    type: String,
-    required: true,
-    trim: true,
+  {
+    title: "The Godfather",
+    year: "1972",
+    genre: "Crime",
+    imageUrl: "https://image.tmdb.org/t/p/w500/rPdtLWNsZmAtoZl9PK7S2wE3qiS.jpg",
+    description: "The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant son.",
+    tmdbId: 238,
+    runtime: 175,
+    reviewCount: 0,
+    avgRating: 0
   },
-  genre: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  imageUrl: {
-    type: String,
-    trim: true,
-  },
-  description: {
-    type: String,
-    trim: true,
-  },
-  tmdbId: {
-    type: Number,
-    unique: true,
-    sparse: true,
-  },
-  runtime: {
-    type: Number,
-    default: 0,
-  },
-  rating: {
-    type: Number,
-    min: 0,
-    max: 10,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  {
+    title: "The Dark Knight",
+    year: "2008",
+    genre: "Action",
+    imageUrl: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
+    description: "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.",
+    tmdbId: 155,
+    runtime: 152,
+    reviewCount: 0,
+    avgRating: 0
+  }
+];
 
-const Movie = mongoose.model('Movie', MovieSchema);
-
-async function importLocalMovies() {
+// Import movies
+async function importMovies() {
   try {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB');
 
-    // Drop existing collection
-    await mongoose.connection.collection('movies').drop().catch(() => {
-      console.log('No existing movies collection to drop');
+    const Movie = mongoose.model('Movie', {
+      title: String,
+      year: String,
+      genre: String,
+      imageUrl: String,
+      description: String,
+      tmdbId: Number,
+      runtime: Number,
+      reviewCount: Number,
+      avgRating: Number
     });
-    console.log('Dropped existing movies collection');
 
-    // Read the JSON file
-    const moviesData = JSON.parse(fs.readFileSync(path.join(__dirname, '../../../client/src/data/movies.json'), 'utf8'));
+    // Clear existing movies
+    await Movie.deleteMany({});
+    console.log('Cleared existing movies');
 
-    let totalImported = 0;
-    let totalSkipped = 0;
+    // Insert sample movies
+    await Movie.insertMany(sampleMovies);
+    console.log('Imported sample movies');
 
-    for (const movie of moviesData) {
-      try {
-        // Create movie document
-        const movieDoc = {
-          title: movie.title,
-          year: movie.year,
-          genre: Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre,
-          imageUrl: movie.image,
-          description: movie.description,
-          tmdbId: movie.id,
-          runtime: movie.runtime || 0,
-          rating: movie.rating,
-        };
-        
-        // Save to database
-        await Movie.create(movieDoc);
-        console.log(`Imported: ${movie.title} (${movie.year})`);
-        totalImported++;
-      } catch (error) {
-        console.error(`Error importing ${movie.title}: ${error.message}`);
-        totalSkipped++;
-      }
-    }
-    
-    console.log(`Import complete! Imported ${totalImported} movies, skipped ${totalSkipped} movies.`);
-  } catch (error) {
-    console.error('Import failed:', error.message);
-  } finally {
+    // Verify import
+    const count = await Movie.countDocuments();
+    console.log(`Total movies in database: ${count}`);
+
     await mongoose.disconnect();
     console.log('Disconnected from MongoDB');
+  } catch (error) {
+    console.error('Error importing movies:', error);
+    process.exit(1);
   }
 }
 
-// Run the import
-importLocalMovies(); 
+importMovies(); 

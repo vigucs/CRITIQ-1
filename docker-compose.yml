@@ -11,10 +11,10 @@ services:
       - ./client:/app
       - /app/node_modules
     environment:
-      - REACT_APP_API_URL=http://server:5000
-      - REACT_APP_ML_API_URL=http://ml-api:6000
-      - NODE_ENV=production
-      - REACT_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - REACT_APP_API_URL=http://localhost:5000
+      - REACT_APP_ML_API_URL=http://localhost:6000
+      - NODE_ENV=development
+      - REACT_APP_GOOGLE_CLIENT_ID=64073786957-6vdvf5mt3ps1gthf0jgpdd17tb9i7rla.apps.googleusercontent.com
     depends_on:
       - server
     networks:
@@ -33,7 +33,8 @@ services:
       - DOCKER_ENV=true
       - JWT_SECRET=your_jwt_secret
       - ML_API_URL=http://ml-api:6000
-      - MONGODB_URI=mongodb://mongodb:27017/movie-reviews
+      - MONGODB_URI=mongodb://mongodb:27017/capstone-project
+      - GOOGLE_CLIENT_ID=your_google_client_id_here
     depends_on:
       mongodb:
         condition: service_started

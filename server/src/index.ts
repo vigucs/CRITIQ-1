@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/database';
 import routes from './routes';
@@ -13,36 +12,27 @@ const PORT = parseInt(process.env.PORT || '5000', 10);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Set up CORS
-app.use(cors({
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://client:3000',
-      'http://localhost:5000',
-      'http://server:5000'
-    ];
-    
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+// Remove all CORS-related code and implement direct proxy
+app.use((req, res, next) => {
+  // Bypass CORS completely
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', '*');
+  res.header('Access-Control-Allow-Headers', '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
 // Add request logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`, {
     body: req.method !== 'GET' ? req.body : undefined,
     query: req.query,
-    headers: {
-      'content-type': req.headers['content-type'],
-      'authorization': req.headers['authorization'] ? 'present' : 'not present'
-    }
+    headers: req.headers
   });
   next();
 });
